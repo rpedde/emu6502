@@ -24,17 +24,19 @@ xsload.py jtag loads the bitstream, it does not permanently send to
 config flash.  That is, it's gone on reboot.
 
 ### JTAG upload ###
-xsload.py -f <bitstream>
+~~~~
+    xsload.py -f <bitstream>
+~~~~
 
-Configuration options:
- -g ConfigRate 12
- all pins pullup
- unused float
+#### Configuration options:
+ * -g ConfigRate 12
+ * all pins pullup
+ * unused float
 
-Startup Options
- -g StartUpClk JTAG Clock
- -g DonePipe True
- -g DriveDone False
+#### Startup Options
+ * -g StartUpClk JTAG Clock
+ * -g DonePipe True
+ * -g DriveDone False
 
 ### Config upload ###
 
