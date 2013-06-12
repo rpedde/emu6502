@@ -41,7 +41,8 @@ ARCHITECTURE behavior OF root_tb IS
 
     COMPONENT root
     PORT(
-      clk_12      : in std_logic;
+      clk_12      : in  std_logic;
+      blinker_o   : out std_logic;
       m_t65_a     : out std_logic_vector(15 downto 0);
       m_t65_clk   : out std_logic;
       m_t65_di    : out std_logic_vector(7 downto 0);
@@ -56,6 +57,7 @@ ARCHITECTURE behavior OF root_tb IS
 
    --Inputs
    signal clk_12 : std_logic := '0';
+   signal blinker_o : std_logic;
 
    signal m_t65_a     : std_logic_vector(15 downto 0);
    signal m_t65_clk   : std_logic;
@@ -73,6 +75,7 @@ begin
    -- Instantiate the Unit Under Test (UUT)
    uut: root port map (
      clk_12      => clk_12,
+     blinker_o   => blinker_o,
      m_t65_a     => m_t65_a,
      m_t65_clk   => m_t65_clk,
      m_t65_di    => m_t65_di,

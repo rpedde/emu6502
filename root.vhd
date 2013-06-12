@@ -11,6 +11,7 @@ use IEEE.STD_LOGIC_UNSIGNED.ALL;
 
 entity root is port (
   clk_12      : in std_logic;
+  blinker_o   : out std_logic := '1';
   m_t65_a     : out std_logic_vector(15 downto 0);
   m_t65_clk   : out std_logic;
   m_t65_di    : out std_logic_vector(7 downto 0);
@@ -41,18 +42,18 @@ architecture rtl of root is
   signal t65_vp      : std_logic;
   signal t65_vda     : std_logic;
   signal t65_vpa     : std_logic;
-  signal t65_a       : std_logic_vector(23 downto 0);
-  signal t65_di      : std_logic_vector(7 downto 0) := "11101010"; --free-run
-  signal t65_do      : std_logic_vector(7 downto 0);
+  signal t65_a       : std_logic_vector(23 downto 0) := "000000000000000000000000";
+  signal t65_di      : std_logic_vector(7 downto 0) := "00000000";
+  signal t65_do      : std_logic_vector(7 downto 0) := "ZZZZZZZZ";
 
   signal ram_enable  : std_logic_vector(7 downto 0);
 
-  signal clk_cnt     : std_logic_vector(2 downto 0) := "000";
   signal clk_2       : std_logic;
   signal startup_res : std_logic := '0';
-  signal startup_cnt : std_logic_vector(7 downto 0) := "00000000";
+  signal startup_cnt : std_logic_vector(11 downto 0) := "000000000000";
   signal ram_clk     : std_logic;
   signal ram_out     : std_logic_vector(7 downto 0);
+  signal clk_cnt     : std_logic_vector(2 downto 0) := "000";
 
 component ram_8k is port (
   clk      : in  std_logic;
@@ -146,11 +147,13 @@ process(clk_12) is
 begin
   if rising_edge(clk_12) then
     clk_cnt <= clk_cnt + 1;
-    if (startup_cnt(7) /= '1') then
-      startup_cnt <= startup_cnt + 1;
-      startup_res <= '0';
-    else
-      startup_res <= '1';
+    if clk_cnt = "111" then
+      if (startup_cnt(11) /= '1') then
+        startup_cnt <= startup_cnt + 1;
+        startup_res <= '0';
+      else
+        startup_res <= '1';
+      end if;
     end if;
   end if;
 end process;
@@ -163,7 +166,20 @@ ram_clk <= not clk_2;
 
 t65_rw_i <= not t65_rw;
 
+-- LSB of address 0 is LED
+blinker_p: process(clk_2) begin
+  if(clk_2'event and clk_2 = '0') then
+    if ((t65_rw = '0') and (t65_a(15 downto 0) = "0000000000000000")) then
+      blinker_o <= t65_do(0);
+    end if;
+  end if;
+end process;
+
+--blinker_o <= t65_do(0) when (t65_rw = '0' and t65_a = "0000000000000000");
+
 -- Outputs for top level device
+t65_di <= ram_out when t65_rw = '1' else "ZZZZZZZZ";
+
 m_t65_a <= t65_a(15 downto 0);
 m_t65_clk <= clk_2;
 m_t65_di <= t65_di;
@@ -172,6 +188,6 @@ m_t65_res <= t65_res;
 m_rw <= t65_rw;
 m_ram_enable <= ram_enable;
 m_ram_out <= ram_out;
-t65_di <= ram_out when t65_rw = '1' else "ZZZZZZZZ";
+
 
 end rtl;
