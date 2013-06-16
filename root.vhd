@@ -19,7 +19,14 @@ entity root is port (
   m_t65_res   : out std_logic;
   m_rw        : out std_logic;
   m_ram_enable: out std_logic_vector(7 downto 0);
-  m_ram_out   : out std_logic_vector(7 downto 0)
+  m_ram_out   : out std_logic_vector(7 downto 0);
+
+  green_physout : out std_logic_vector(1 downto 0);
+  red_physout   : out std_logic_vector(1 downto 0);
+  blue_physout  : out std_logic_vector(1 downto 0);
+
+  v_sync_physout : out std_logic;
+  h_sync_physout : out std_logic
   );
 end root;
 
@@ -62,6 +69,29 @@ component ram_8k is port (
   enable_n : in  std_logic;
   di       : in  std_logic_vector(7 downto 0);
   do       : out std_logic_vector(7 downto 0)
+  );
+end component;
+
+component vga_640_video is port (
+  -- the 8k dual-port vram
+  clk        : in  std_logic;
+  addr       : in  std_logic_vector (12 downto 0);
+  we         : in  std_logic;
+  enable_n   : in  std_logic;
+  di         : in  std_logic_vector(7 downto 0);
+  do         : out std_logic_vector(7 downto 0);
+
+  -- vga color info (awesome 6 bit color!)
+  red        : out std_logic_vector(1 downto 0);
+  green      : out std_logic_vector(1 downto 0);
+  blue       : out std_logic_vector(1 downto 0);
+
+  -- vga timing info
+  v_sync     : out std_logic;
+  h_sync     : out std_logic;
+
+  -- XuLA provides a 12Mhz clock.  We want this clock
+  clk_12     : in std_logic
   );
 end component;
 
@@ -133,7 +163,7 @@ decoder: decoder3to8 port map(
   e    => ram_enable
 );
 
-ram: ram_8k port map(
+ram_e000: ram_8k port map(
   clk      => ram_clk,
   addr     => t65_a(12 downto 0),
   we       => t65_rw_i,
@@ -142,6 +172,23 @@ ram: ram_8k port map(
   do       => ram_out
 );
 
+video: vga_640_video port map (
+  clk      => ram_clk,
+  addr     => t65_a(12 downto 0),
+  we       => t65_rw_i,
+  enable_n => ram_enable(6), -- c000-dfff
+  di       => t65_do,
+  do       => ram_out,
+
+  red      => red_physout,
+  green    => green_physout,
+  blue     => blue_physout,
+
+  v_sync   => v_sync_physout,
+  h_sync   => h_sync_physout,
+
+  clk_12   => clk_12
+);
 
 process(clk_12) is
 begin

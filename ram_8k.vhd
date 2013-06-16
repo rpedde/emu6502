@@ -81,6 +81,8 @@ begin
         end if;
         do <= std_logic_vector(ram_r(to_integer(unsigned(addr))));
       end if;
+    else
+      do <= "ZZZZZZZZ";
     end if;
   end process;
 
