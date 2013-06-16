@@ -76,9 +76,9 @@ begin
 
       -- paint!
       if video_on = '1' then
-        red <= "00";
-        green <= "00";
-        blue <= "00";
+        red <= "11";
+        green <= "11";
+        blue <= "11";
       else
         red <= "00";
         green <= "00";
