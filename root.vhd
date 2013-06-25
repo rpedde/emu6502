@@ -21,9 +21,9 @@ entity root is port (
   m_ram_enable: out std_logic_vector(7 downto 0);
   m_ram_out   : out std_logic_vector(7 downto 0);
 
-  green_physout : out std_logic;
-  red_physout   : out std_logic;
-  blue_physout  : out std_logic;
+  green_physout : out std_logic_vector(1 downto 0);
+  red_physout   : out std_logic_vector(1 downto 0);
+  blue_physout  : out std_logic_vector(1 downto 0);
 
   v_sync_physout : out std_logic;
   h_sync_physout : out std_logic
@@ -61,10 +61,6 @@ architecture rtl of root is
   signal ram_clk     : std_logic;
   signal ram_out     : std_logic_vector(7 downto 0);
   signal clk_cnt     : std_logic_vector(2 downto 0) := "000";
-
-  signal red_physout_bus   : std_logic_vector(1 downto 0);
-  signal blue_physout_bus  : std_logic_vector(1 downto 0);
-  signal green_physout_bus : std_logic_vector(1 downto 0);
 
 component ram_8k is port (
   clk      : in  std_logic;
@@ -184,9 +180,9 @@ video: vga_640_video port map (
   di       => t65_do,
   do       => ram_out,
 
-  red      => red_physout_bus,
-  green    => green_physout_bus,
-  blue     => blue_physout_bus,
+  red      => red_physout,
+  green    => green_physout,
+  blue     => blue_physout,
 
   v_sync   => v_sync_physout,
   h_sync   => h_sync_physout,
@@ -239,9 +235,5 @@ m_t65_res <= t65_res;
 m_rw <= t65_rw;
 m_ram_enable <= ram_enable;
 m_ram_out <= ram_out;
-
-red_physout <= red_physout_bus(1);
-blue_physout <= blue_physout_bus(1);
-green_physout <= green_physout_bus(1);
 
 end rtl;
