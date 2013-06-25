@@ -49,9 +49,10 @@ architecture behavioral of vga_640_video is
   signal video_on : std_logic;
   signal clk_25   : std_logic;
 
-  signal h_cnt    : integer := 0;
-  signal v_cnt    : integer := 0;
+  signal h_cnt    : integer range 0 to 1023 := 0;
+  signal v_cnt    : integer range 0 to 1023 := 0;
 
+  signal cnt_tmp  : std_logic_vector(5 downto 0);
 begin
   -- Set up a 25 mhz from clk_12
   DCM_SP_inst : DCM_SP
@@ -76,9 +77,15 @@ begin
 
       -- paint!
       if video_on = '1' then
-        red <= "11";
-        green <= "11";
-        blue <= "11";
+        cnt_tmp(3 downto 0) <= std_logic_vector(to_unsigned(h_cnt, 4));
+        cnt_tmp(5 downto 4) <= std_logic_vector(to_unsigned(v_cnt, 2));
+
+        red <= cnt_tmp(1 downto 0);
+        green <= cnt_tmp(3 downto 2);
+        blue <= cnt_tmp(5 downto 4);
+        --red <= "11";
+        --green <= "11";
+        --blue <= "11";
       else
         red <= "00";
         green <= "00";
@@ -87,7 +94,6 @@ begin
 
       -- update h_sync and v_sync
       h_cnt <= h_cnt + 1;
-
       if (h_cnt >= (H_W + H_FP)) and (h_cnt < (H_W + H_FP + H_RT)) then
         h_sync <= '0';
       else
