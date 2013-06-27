@@ -11,7 +11,7 @@ use IEEE.STD_LOGIC_UNSIGNED.ALL;
 
 entity root is port (
   clk_12      : in std_logic;
-  blinker_o   : out std_logic := '1';
+  --blinker_o   : out std_logic := '1';
   m_t65_a     : out std_logic_vector(15 downto 0);
   m_t65_clk   : out std_logic;
   m_t65_di    : out std_logic_vector(7 downto 0);
@@ -172,6 +172,15 @@ ram_e000: ram_8k port map(
   do       => ram_out
 );
 
+ram_0000: ram_8k port map(
+  clk      => ram_clk,
+  addr     => t65_a(12 downto 0),
+  we       => t65_rw_i,
+  enable_n => ram_enable(0),
+  di       => t65_do,
+  do       => ram_out
+);
+
 video: vga_640_video port map (
   clk      => ram_clk,
   addr     => t65_a(12 downto 0),
@@ -214,13 +223,13 @@ ram_clk <= not clk_2;
 t65_rw_i <= not t65_rw;
 
 -- LSB of address 0 is LED
-blinker_p: process(clk_2) begin
-  if(clk_2'event and clk_2 = '0') then
-    if ((t65_rw = '0') and (t65_a(15 downto 0) = "0000000000000000")) then
-      blinker_o <= t65_do(0);
-    end if;
-  end if;
-end process;
+--blinker_p: process(clk_2) begin
+--  if(clk_2'event and clk_2 = '0') then
+--    if ((t65_rw = '0') and (t65_a(15 downto 0) = "0000000000000000")) then
+--      blinker_o <= t65_do(0);
+--    end if;
+--  end if;
+--end process;
 
 --blinker_o <= t65_do(0) when (t65_rw = '0' and t65_a = "0000000000000000");
 

@@ -5,7 +5,7 @@ NET "clk_12" IOSTANDARD = LVCMOS25;
 # PlanAhead Generated physical constraints
 
 NET "clk_12" LOC = P43;
-NET "blinker_o" LOC = P44;
+# NET "blinker_o" LOC = P44;
 
 NET "v_sync_physout" LOC = P36;
 NET "h_sync_physout" LOC = P37;
