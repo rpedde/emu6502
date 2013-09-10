@@ -81,10 +81,13 @@ architecture behavioral of vga_640_video is
   signal cgram : cgram_t := init_mem("chargen.mif");
 
   signal current_char : std_logic_vector(7 downto 0);
+  signal next_char : std_logic_vector(7 downto 0);
   signal current_data : unsigned(7 downto 0);
-  signal pixel_ofs : integer := 0;
+  signal next_data : unsigned(7 downto 0);
+  signal pixel_ofs : integer := 7;
   signal line_ofs : unsigned(3 downto 0) := "0000";
   signal char_ptr : integer := 0;
+  signal next_ptr : integer := 0;
   signal line_ptr : integer := 0;
 begin
   -- Dual port video memory
@@ -115,15 +118,8 @@ begin
       -- current_char holds current bytewise data, and
       -- pixel_ofs if the offset in that bytewise_data
       if video_on = '1' then
-        if current_data(7 - pixel_ofs) = '1' then
-        --if (pixel_ofs = 0 and std_match(current_data, "1-------")) or
-        --   (pixel_ofs = 1 and std_match(current_data, "-1------")) or
-        --   (pixel_ofs = 2 and std_match(current_data, "--1-----")) or
-        --   (pixel_ofs = 3 and std_match(current_data, "---1----")) or
-        --   (pixel_ofs = 4 and std_match(current_data, "----1---")) or
-        --   (pixel_ofs = 5 and std_match(current_data, "-----1--")) or
-        --   (pixel_ofs = 6 and std_match(current_data, "------1-")) or
-        --   (pixel_ofs = 7 and std_match(current_data, "-------1")) then
+
+        if current_data(pixel_ofs) = '1' then
           red <= r_fg(5 downto 4);
           green <= r_fg(3 downto 2);
           blue <= r_fg(1 downto 0);
@@ -133,16 +129,56 @@ begin
           blue <= r_bg(1 downto 0);
         end if;
 
-        if pixel_ofs = 7 then
-          -- we just moved off the end of the current byte
-          pixel_ofs <= 0;
-          char_ptr <= char_ptr + 1;
-          current_char <= vram(char_ptr);
-          current_data <= cgram(to_integer((unsigned(current_char) * 16) + line_ofs));
-        else
-          pixel_ofs <= pixel_ofs + 1;
+        -- advance data - MODE0
+        if pixel_ofs = 6 then
+          -- calculate next char position
+          if h_cnt >= (H_W - 8) then
+            if v_cnt = (V_W - 1) then
+              next_ptr <= 0;
+            else
+              next_ptr <= line_ptr;
+            end if;
+          else
+            next_ptr <= next_ptr + 1;
+          end if;
         end if;
-      else
+
+        if pixel_ofs = 5 then
+          next_char <= vram(next_ptr);
+        end if;
+
+        if pixel_ofs = 4 then
+          -- line_ofs needs a next... first line/first char off by one line
+          next_data <= cgram(to_integer((unsigned(next_char) * 16) + line_ofs));
+        end if;
+
+        if pixel_ofs = 0 or h_cnt = (H_W - 1) then
+          pixel_ofs <= 7;
+          if h_cnt = (H_W - 1) then
+            -- at end of horiz line
+            if v_cnt = (V_W - 1) then
+              -- at end of screen
+              line_ofs <= "0000";
+              line_ptr <= 0;
+            else
+              if to_unsigned(v_cnt, 1) = "1" then
+                if line_ofs = "1001" then
+                  line_ofs <= "0000";
+                  line_ptr <= line_ptr + 80;
+                else
+                  line_ofs <= to_unsigned(to_integer(line_ofs) + 1, 4);
+                end if;
+              end if;
+            end if;
+            pixel_ofs <= 8;
+          end if;
+
+          current_char <= next_char;
+          current_data <= next_data;
+        else
+          pixel_ofs <= pixel_ofs - 1;
+        end if;
+      else -- video_on = '0'
         red <= "00";
         green <= "00";
         blue <= "00";
@@ -159,22 +195,6 @@ begin
       if h_cnt >= (H_W + H_FP + H_RT + H_BP) then
         h_cnt <= 0;
         v_cnt <= v_cnt + 1;
-
-        -- bump the line ofs
-        if to_unsigned(v_cnt, 1) = "0" then
-          line_ofs <= to_unsigned(to_integer(line_ofs) + 1, 4);
-        end if;
-
-        -- if over line, bump the line_ptr
-        if line_ofs = "1010" then
-          line_ofs <= "0000";
-          --line_ptr <= line_ptr + 80;
-          line_ptr <= char_ptr;
-        else
-          char_ptr <= line_ptr;
-        end if;
-
-        pixel_ofs <= 0;
       end if;
 
       if (v_cnt >= (V_W + V_FP)) and (v_cnt < (V_W + V_FP + V_RT)) then
@@ -185,16 +205,7 @@ begin
 
       if v_cnt >= (V_W + V_FP + V_RT + V_BP) then
         v_cnt <= 0;
-
-        -- reset pointers
-        line_ptr <= 0;
-        line_ofs <= "0000";
-        char_ptr <= 0;
-
-        current_char <= vram(char_ptr);
-        current_data <= cgram(to_integer((unsigned(current_char) * 16) + line_ofs));
       end if;
-
     end if;
   end process;
 
