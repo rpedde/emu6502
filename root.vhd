@@ -9,6 +9,9 @@ use IEEE.STD_LOGIC_1164.ALL;
 -- use IEEE.STD_LOGIC_ARITH.ALL;
 use IEEE.STD_LOGIC_UNSIGNED.ALL;
 
+library UNISIM;
+use UNISIM.vcomponents.all;
+
 entity root is port (
   clk_12      : in std_logic;
   --blinker_o   : out std_logic := '1';
@@ -26,7 +29,10 @@ entity root is port (
   blue_physout  : out std_logic_vector(1 downto 0);
 
   v_sync_physout : out std_logic;
-  h_sync_physout : out std_logic
+  h_sync_physout : out std_logic;
+
+  uart_tx : out std_logic;
+  uart_rx : in std_logic
   );
 end root;
 
@@ -56,11 +62,14 @@ architecture rtl of root is
   signal ram_enable  : std_logic_vector(7 downto 0);
 
   signal clk_2       : std_logic;
+  signal clk_8       : std_logic;
   signal startup_res : std_logic := '0';
   signal startup_cnt : std_logic_vector(11 downto 0) := "000000000000";
   signal ram_clk     : std_logic;
   signal ram_out     : std_logic_vector(7 downto 0);
   signal clk_cnt     : std_logic_vector(2 downto 0) := "000";
+
+  signal uart_d      : std_logic_vector(7 downto 0);
 
 component ram_8k is port (
   clk      : in  std_logic;
@@ -70,6 +79,35 @@ component ram_8k is port (
   di       : in  std_logic_vector(7 downto 0);
   do       : out std_logic_vector(7 downto 0)
   );
+end component;
+
+component gh_uart_16550 is port (
+  clk     : in std_logic;
+  BR_clk  : in std_logic;
+  rst     : in std_logic;
+  CS      : in std_logic;
+  WR      : in std_logic;
+  ADD     : in std_logic_vector(2 downto 0);
+  D       : in std_logic_vector(7 downto 0);
+
+  sRX     : in std_logic;
+  CTSn    : in std_logic := '1';
+  DSRn    : in std_logic := '1';
+  RIn     : in std_logic := '1';
+  DCDn    : in std_logic := '1';
+
+  sTX     : out std_logic;
+  DTRn    : out std_logic;
+  RTSn    : out std_logic;
+  OUT1n   : out std_logic;
+  OUT2n   : out std_logic;
+  TXRDYn  : out std_logic;
+  RXRDYn  : out std_logic;
+
+  IRQ     : out std_logic;
+  B_CLK   : out std_logic;
+  RD      : out std_logic_vector(7 downto 0)
+);
 end component;
 
 component vga_640_video is port (
@@ -134,6 +172,20 @@ component T65 is port (
 end component;
 
 begin
+
+  -- Set up a 8 mhz from clk_12
+  DCM_SP_inst : DCM_SP
+  generic map (
+    CLKFX_DIVIDE    => 12,
+    CLKFX_MULTIPLY  => 8
+  )
+  port map (
+    CLKFX => clk_8,
+    CLKIN => clk_12,
+    RST   => '0'
+  );
+
+
 cpu: T65 port map(
   Mode    => t65_mode,
   Res_n   => t65_res,
@@ -161,6 +213,18 @@ cpu: T65 port map(
 decoder: decoder3to8 port map(
   a    => t65_a(15 downto 13),
   e    => ram_enable
+);
+
+uart: gh_uart_16550 port map(
+  clk      => ram_clk,
+  BR_clk   => clk_8,
+  rst      => t65_res,
+  CS       => ram_enable(5), -- a000-bfff
+  WR       => t65_rw,
+  ADD      => t65_a(2 downto 0),
+  D        => uart_d,
+  sRX      => uart_rx,
+  sTX      => uart_tx
 );
 
 ram_e000: ram_8k port map(
@@ -198,6 +262,21 @@ video: vga_640_video port map (
 
   clk_12   => clk_12
 );
+
+uart_data: process(ram_clk, t65_rw, ram_enable) is
+begin
+  if ram_enable(5) = '0' then
+    if t65_rw = '0' then -- write
+      uart_d <= t65_do;
+      ram_out <= "ZZZZZZZZ";
+    else
+      ram_out <= uart_d;
+    end if;
+  else
+    uart_d <= "ZZZZZZZZ";
+    ram_out <= "ZZZZZZZZ";
+  end if;
+end process;
 
 process(clk_12) is
 begin

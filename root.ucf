@@ -16,3 +16,6 @@ NET "green_physout[0]" LOC = P56;
 NET "green_physout[1]" LOC = P57;
 NET "blue_physout[0]" LOC = P61;
 NET "blue_physout[1]" LOC = P62;
+
+NET "uart_tx" LOC = P94;
+NET "uart_rx" LOC = P93;
