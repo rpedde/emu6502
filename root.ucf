@@ -17,5 +17,8 @@ NET "green_physout[1]" LOC = P57;
 NET "blue_physout[0]" LOC = P61;
 NET "blue_physout[1]" LOC = P62;
 
-NET "uart_tx" LOC = P94;
-NET "uart_rx" LOC = P93;
+NET "uart_tx" LOC = P72;
+NET "uart_rx" LOC = P73;
+
+NET "clk_12" CLOCK_DEDICATED_ROUTE = FALSE;
+PIN "DCM_SP_inst.CLKIN" CLOCK_DEDICATED_ROUTE = FALSE;
